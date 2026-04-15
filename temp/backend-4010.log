@@ -1,0 +1,17 @@
+
+> extractify-backend@1.0.0 start
+> nest start
+
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:42 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:43 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +78ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:43 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +10ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:43 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +21ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:43 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +24ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:43 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:43 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseCoreModule dependencies initialized[39m[38;5;3m +265ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:43 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +16ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:43 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExtractionModule dependencies initialized[39m[38;5;3m +5ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:45 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExtractionController {/api}:[39m[38;5;3m +2471ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:45 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/upload, POST} route[39m[38;5;3m +10ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:45 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/results/:id, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 7956  - [39m28/03/2026, 4:44:45 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +9ms[39m
