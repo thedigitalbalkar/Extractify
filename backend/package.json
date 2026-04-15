@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "npm run start",
+    "start": "node dist/main.js",
     "start:dev": "nest start --watch",
-    "build": "npm install -g @nestjs/cli && nest build"
+    "build": "tsc"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.2",
