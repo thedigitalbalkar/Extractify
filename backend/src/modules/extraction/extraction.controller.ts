@@ -73,12 +73,12 @@ export class ExtractionController {
     return this.extractionService.processUpload(file);
   }
 
-  @Get("results/:id")
+  @Get("/apiresults/:id")
   getResult(@Param("id") id: string) {
     return this.extractionService.getResult(id);
   }
 
-  @Post("results/:id/cancel")
+  @Post("/api/results/:id/cancel")
   cancelResult(@Param("id") id: string) {
     return this.extractionService.cancelResult(id);
   }
