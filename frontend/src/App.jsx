@@ -323,7 +323,7 @@ function App() {
     let resultId = null;
 
     try {
-      const response = await api.post("/api/upload", formData, {
+      const response = await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
         timeout: 120000,
         onUploadProgress: (event) => {
@@ -654,3 +654,4 @@ function App() {
 }
 
 export default App;
+
