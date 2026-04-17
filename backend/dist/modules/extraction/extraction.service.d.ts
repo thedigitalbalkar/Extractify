@@ -2,6 +2,7 @@ import { Model } from "mongoose";
 import { ExtractionResultDocument } from "./schemas/extraction-result.schema";
 export declare class ExtractionService {
     private readonly extractionResultModel;
+    private readonly logger;
     constructor(extractionResultModel: Model<ExtractionResultDocument>);
     processUpload(file: Express.Multer.File): Promise<{
         id: any;
@@ -46,11 +47,13 @@ export declare class ExtractionService {
         updatedAt: any;
     }>;
     private cleanCancelledResult;
+    private deleteUploadedFile;
     private ensureNotCancelled;
     private processQueuedUpload;
     private extractDocument;
     private runOcrAndExtract;
     private updatePartialProgress;
+    private getImageDimensionsFromFilePath;
     private getImageDimensions;
     private buildExtractionState;
     private finalizeExtraction;

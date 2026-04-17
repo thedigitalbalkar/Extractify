@@ -7,8 +7,7 @@ import {
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { readFile, unlink } from "fs/promises";
-import * as pdf from "pdf-parse";
+import { open, unlink } from "fs/promises";
 import { convert } from "pdf-img-convert";
 import { createWorker, PSM } from "tesseract.js";
 import {
@@ -237,19 +236,6 @@ export class ExtractionService {
     jobId: string
   ): Promise<{ rawExtractedText: string } & ExtractedFields> {
     await this.ensureNotCancelled(jobId);
-
-    if (file.mimetype === "application/pdf") {
-      const parsed = await pdf(await readFile(file.path));
-      await this.ensureNotCancelled(jobId);
-      const parsedText = this.normalizeExtractedText(parsed.text || "");
-      const parsedRecords = this.extractRecordsFromText(parsedText, 1, 1);
-
-      if (parsedRecords.length && this.shouldTrustParsedPdfRecords(parsedRecords)) {
-        await this.updatePartialProgress(jobId, parsedText, parsedRecords, 1, 1);
-        return this.finalizeExtraction(parsedText, parsedRecords);
-      }
-    }
-
     return this.runOcrAndExtract(file, jobId);
   }
 
@@ -307,6 +293,8 @@ export class ExtractionService {
           records.push(...pageRecords);
           nextSeries += pageRecords.length;
 
+          pages[index] = new Uint8Array();
+
           await this.updatePartialProgress(
             jobId,
             rawTextParts.filter(Boolean).join("\n").trim(),
@@ -321,15 +309,14 @@ export class ExtractionService {
           processedPages: 0,
         });
         await this.ensureNotCancelled(jobId);
-        const imageBuffer = await readFile(file.path);
-        const imageDimensions = this.getImageDimensions(imageBuffer);
-        const { data } = await worker.recognize(imageBuffer);
+        const imageDimensions = await this.getImageDimensionsFromFilePath(file.path);
+        const { data } = await worker.recognize(file.path);
         const normalizedText = this.normalizeExtractedText(data.text || "");
         rawTextParts.push(normalizedText);
 
         const pageRecords = await this.extractRecordsFromOcrPage(
           worker,
-          imageBuffer,
+          file.path,
           imageDimensions,
           (data.words || []) as OcrWord[],
           normalizedText,
@@ -377,6 +364,18 @@ export class ExtractionService {
       processedPages,
       totalPages,
     });
+  }
+
+  private async getImageDimensionsFromFilePath(filePath: string): Promise<ImageDimensions> {
+    const fileHandle = await open(filePath, "r");
+
+    try {
+      const headerBuffer = Buffer.alloc(65536);
+      const { bytesRead } = await fileHandle.read(headerBuffer, 0, headerBuffer.length, 0);
+      return this.getImageDimensions(headerBuffer.subarray(0, bytesRead));
+    } finally {
+      await fileHandle.close();
+    }
   }
 
   private getImageDimensions(image: Buffer): ImageDimensions {
@@ -463,7 +462,7 @@ export class ExtractionService {
 
   private async extractRecordsFromOcrPage(
     worker: Awaited<ReturnType<typeof createWorker>>,
-    image: Buffer,
+    image: Buffer | string,
     imageDimensions: ImageDimensions,
     words: OcrWord[],
     normalizedText: string,
@@ -702,7 +701,7 @@ export class ExtractionService {
 
   private async recognizeCellWithRectangle(
     worker: Awaited<ReturnType<typeof createWorker>>,
-    image: Buffer,
+    image: Buffer | string,
     rectangle: { left: number; top: number; width: number; height: number },
     psm: PSM
   ) {
@@ -725,7 +724,7 @@ export class ExtractionService {
 
   private async retryWeakCellRecord(
     worker: Awaited<ReturnType<typeof createWorker>>,
-    image: Buffer,
+    image: Buffer | string,
     words: OcrWord[],
     series: number,
     pageNumber: number,
@@ -1614,6 +1613,10 @@ export class ExtractionService {
     };
   }
 }
+
+
+
+
 
 
 

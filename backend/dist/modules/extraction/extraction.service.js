@@ -11,13 +11,13 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var ExtractionService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExtractionService = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const promises_1 = require("fs/promises");
-const pdf = require("pdf-parse");
 const pdf_img_convert_1 = require("pdf-img-convert");
 const tesseract_js_1 = require("tesseract.js");
 const extraction_result_schema_1 = require("./schemas/extraction-result.schema");
@@ -26,9 +26,10 @@ class CancelledExtractionError extends Error {
         super("Extraction cancelled.");
     }
 }
-let ExtractionService = class ExtractionService {
+let ExtractionService = ExtractionService_1 = class ExtractionService {
     constructor(extractionResultModel) {
         this.extractionResultModel = extractionResultModel;
+        this.logger = new common_1.Logger(ExtractionService_1.name);
     }
     async processUpload(file) {
         if (!file) {
@@ -91,11 +92,18 @@ let ExtractionService = class ExtractionService {
             processedPages: 0,
             totalPages: 0,
         });
-        if (filePath) {
-            try {
-                await (0, promises_1.unlink)(filePath);
-            }
-            catch { }
+        await this.deleteUploadedFile(filePath);
+    }
+    async deleteUploadedFile(filePath) {
+        if (!filePath) {
+            return;
+        }
+        try {
+            await (0, promises_1.unlink)(filePath);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : "Unknown file deletion error.";
+            this.logger.warn(`Failed to delete uploaded file at ${filePath}: ${message}`);
         }
     }
     async ensureNotCancelled(id) {
@@ -136,6 +144,7 @@ let ExtractionService = class ExtractionService {
                 confidenceScore: extraction.confidenceScore,
                 warnings: extraction.warnings,
             });
+            await this.deleteUploadedFile(result.filePath);
         }
         catch (error) {
             if (error instanceof CancelledExtractionError) {
@@ -156,16 +165,6 @@ let ExtractionService = class ExtractionService {
     }
     async extractDocument(file, jobId) {
         await this.ensureNotCancelled(jobId);
-        if (file.mimetype === "application/pdf") {
-            const parsed = await pdf(await (0, promises_1.readFile)(file.path));
-            await this.ensureNotCancelled(jobId);
-            const parsedText = this.normalizeExtractedText(parsed.text || "");
-            const parsedRecords = this.extractRecordsFromText(parsedText, 1, 1);
-            if (parsedRecords.length && this.shouldTrustParsedPdfRecords(parsedRecords)) {
-                await this.updatePartialProgress(jobId, parsedText, parsedRecords, 1, 1);
-                return this.finalizeExtraction(parsedText, parsedRecords);
-            }
-        }
         return this.runOcrAndExtract(file, jobId);
     }
     async runOcrAndExtract(file, jobId) {
@@ -203,6 +202,7 @@ let ExtractionService = class ExtractionService {
                     const pageRecords = await this.extractRecordsFromOcrPage(worker, pageBuffer, imageDimensions, (data.words || []), normalizedText, nextSeries, index + 1, jobId);
                     records.push(...pageRecords);
                     nextSeries += pageRecords.length;
+                    pages[index] = new Uint8Array();
                     await this.updatePartialProgress(jobId, rawTextParts.filter(Boolean).join("\n").trim(), records, index + 1, totalPages);
                 }
             }
@@ -212,12 +212,11 @@ let ExtractionService = class ExtractionService {
                     processedPages: 0,
                 });
                 await this.ensureNotCancelled(jobId);
-                const imageBuffer = await (0, promises_1.readFile)(file.path);
-                const imageDimensions = this.getImageDimensions(imageBuffer);
-                const { data } = await worker.recognize(imageBuffer);
+                const imageDimensions = await this.getImageDimensionsFromFilePath(file.path);
+                const { data } = await worker.recognize(file.path);
                 const normalizedText = this.normalizeExtractedText(data.text || "");
                 rawTextParts.push(normalizedText);
-                const pageRecords = await this.extractRecordsFromOcrPage(worker, imageBuffer, imageDimensions, (data.words || []), normalizedText, nextSeries, 1, jobId);
+                const pageRecords = await this.extractRecordsFromOcrPage(worker, file.path, imageDimensions, (data.words || []), normalizedText, nextSeries, 1, jobId);
                 records.push(...pageRecords);
                 await this.updatePartialProgress(jobId, rawTextParts.filter(Boolean).join("\n").trim(), records, 1, 1);
             }
@@ -241,6 +240,17 @@ let ExtractionService = class ExtractionService {
             processedPages,
             totalPages,
         });
+    }
+    async getImageDimensionsFromFilePath(filePath) {
+        const fileHandle = await (0, promises_1.open)(filePath, "r");
+        try {
+            const headerBuffer = Buffer.alloc(65536);
+            const { bytesRead } = await fileHandle.read(headerBuffer, 0, headerBuffer.length, 0);
+            return this.getImageDimensions(headerBuffer.subarray(0, bytesRead));
+        }
+        finally {
+            await fileHandle.close();
+        }
     }
     getImageDimensions(image) {
         if (image.length >= 24 && image[0] === 0x89 && image[1] === 0x50 && image[2] === 0x4e && image[3] === 0x47) {
@@ -1142,7 +1152,7 @@ let ExtractionService = class ExtractionService {
     }
 };
 exports.ExtractionService = ExtractionService;
-exports.ExtractionService = ExtractionService = __decorate([
+exports.ExtractionService = ExtractionService = ExtractionService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(extraction_result_schema_1.ExtractionResult.name)),
     __metadata("design:paramtypes", [mongoose_2.Model])
