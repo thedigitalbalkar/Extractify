@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   UnsupportedMediaTypeException,
 } from "@nestjs/common";
@@ -57,6 +58,8 @@ class CancelledExtractionError extends Error {
 
 @Injectable()
 export class ExtractionService {
+  private readonly logger = new Logger(ExtractionService.name);
+
   constructor(
     @InjectModel(ExtractionResult.name)
     private readonly extractionResultModel: Model<ExtractionResultDocument>
@@ -142,13 +145,22 @@ export class ExtractionService {
       totalPages: 0,
     });
 
-    if (filePath) {
-      try {
-        await unlink(filePath);
-      } catch {}
-    }
+    await this.deleteUploadedFile(filePath);
   }
 
+  private async deleteUploadedFile(filePath?: string | null) {
+    if (!filePath) {
+      return;
+    }
+
+    try {
+      await unlink(filePath);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown file deletion error.";
+      this.logger.warn(`Failed to delete uploaded file at ${filePath}: ${message}`);
+    }
+  }
   private async ensureNotCancelled(id: string) {
     const current = await this.extractionResultModel
       .findById(id)
@@ -197,6 +209,8 @@ export class ExtractionService {
         confidenceScore: extraction.confidenceScore,
         warnings: extraction.warnings,
       });
+
+      await this.deleteUploadedFile(result.filePath);
     } catch (error) {
       if (error instanceof CancelledExtractionError) {
         await this.cleanCancelledResult(id, result.filePath);
@@ -1600,4 +1614,6 @@ export class ExtractionService {
     };
   }
 }
+
+
 
